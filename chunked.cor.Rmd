@@ -1,0 +1,131 @@
+---
+title: "correlations"
+output: html_notebook
+---
+
+This script demos how to do correlations across very large matrices.  It makes use of the [BufferedMatrix](https://bioconductor.org/packages/release/bioc/vignettes/BufferedMatrix/inst/doc/BufferedMatrix.pdf) package to reduce memory requirements.  __Please read the vignette at the link above to learn how to use the resulting data object__
+
+```{r}
+library(BufferedMatrix)
+```
+
+## testing ideas
+
+Before we get started, let's make sure we understand how correlation of 2 matrices works
+```{r}
+x <- matrix(1:25,ncol=5)
+y <- matrix(c(1:5,5:1,1:5,1:5,5:1),ncol=5)
+colnames(x) <- c("a","b","c","d","e")
+colnames(y) <- c("m","n","o","p","q")
+cor(x,y)
+```
+
+as expected, each column of x is correlated against each column of y.
+
+Let's try doing correlations in chunks.  First create a matrix.
+```{r}
+ncol<- 102
+nrow <- 100
+my.data <- matrix(rnorm(n = ncol*nrow),ncol=ncol)
+```
+
+Create a matrix to hold the results
+```{r}
+cor.results <- matrix(NA,ncol=ncol,nrow=ncol)
+```
+
+Correlations will be done in chunks.  Set this up.
+```{r}
+chunk.size <- 10
+n.chunks <- ceiling(ncol/chunk.size)
+```
+
+Now we pull one chunks of columns from the data, do the corelations between it and all other chunks (where correlations have not yet been done) and put the results in the appropriate place in the results matrix.
+```{r}
+for(i in 1:n.chunks) {
+  chunk.i.cols <- ((i-1)*chunk.size + 1) : min(i*chunk.size,ncol) # so that we don't go over on the last column
+  
+  for(j in i:n.chunks) {
+    chunk.j.cols <- ((j-1)*chunk.size + 1) : min(j*chunk.size,ncol) # so that we don't go over on the last column
+      tmp.cor <- cor(my.data[,chunk.i.cols],
+                         my.data[,chunk.j.cols])
+      if(i==j) tmp.cor[lower.tri(tmp.cor)] <- NA # clean up if on diagonal
+      cor.results[chunk.i.cols,chunk.j.cols] <- tmp.cor
+  }
+}
+```
+
+Compare this chunked correlation to doing it all at once to make sure the results are the same.
+```{r}
+cor.results.2 <- cor(my.data)
+all.equal(cor.results[upper.tri(cor.results)],
+          cor.results.2[upper.tri(cor.results.2)])
+```
+
+Make it a function
+```{r}
+chunked.cor <- function(my.data,chunk.size=NA,use="everything",method="pearson", verbose=TRUE) {
+  
+  ncol <- ncol(my.data)
+  
+  if(is.na(chunk.size)) chunk.size <- min(10000, floor(ncol/10))
+
+  n.chunks <- ceiling(ncol/chunk.size)
+  
+  if(verbose) cat("chunk size: ",chunk.size,"\n n.chunks: ",n.chunks,"\n")
+  
+    if(verbose) cat("creating matrix\n")
+
+    cor.results <- createBufferedMatrix(rows = ncol,
+                                        cols = ncol,
+                                        bufferrows = chunk.size,
+                                        buffercols = 1,
+                                        directory = tempdir())
+    
+    RowMode(cor.results)
+  
+  if(verbose) cat("done\n")
+    
+  
+  for(i in 1:n.chunks) {
+    chunk.i.cols <- ((i-1)*chunk.size + 1) : min(i*chunk.size,ncol) # so that we don't go over on the last column
+    
+      if(verbose) cat("starting outer chunk i: ",i,"\n")
+    
+    for(j in i:n.chunks) {
+      #cat("\ni: ",i,"j: ",j)
+      chunk.j.cols <- ((j-1)*chunk.size + 1) : min(j*chunk.size,ncol) # so that we don't go over on the last column
+      tmp.cor <- cor(my.data[,chunk.i.cols],
+                         my.data[,chunk.j.cols],use=use,method=method)
+      if(i==j) tmp.cor[lower.tri(tmp.cor)] <- NA # clean up if on diagonal
+      cor.results[chunk.i.cols,chunk.j.cols] <- tmp.cor
+    }
+  }
+  cor.results
+}
+```
+
+test it on small data set to verify behaving correctly
+```{r}
+cor.results3 <- as.matrix(chunked.cor(my.data))
+all.equal(cor.results3[upper.tri(cor.results3)],
+          cor.results.2[upper.tri(cor.results.2)])
+```
+
+now on large data set
+```{r}
+ncol <- 200005
+nrow <- 100
+my.data.large <- matrix(rnorm(ncol*nrow),ncol=ncol)
+```
+
+10003 columns
+```{r}
+system.time(results <- chunked.cor(my.data.large[,1:10003]))
+```
+
+50003 columns
+```{r}
+system.time(results <- chunked.cor(my.data.large[,1:50003]))
+```
+
