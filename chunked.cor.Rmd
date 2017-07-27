@@ -3,11 +3,10 @@ title: "correlations"
 output: html_notebook
 ---
 
-This script demos how to do correlations across very large matrices.  It makes use of the [BufferedMatrix](https://bioconductor.org/packages/release/bioc/vignettes/BufferedMatrix/inst/doc/BufferedMatrix.pdf) package to reduce memory requirements.  __Please read the vignette at the link above to learn how to use the resulting data object__
+This script demos how to do correlations across very large matrices.  It makes use of the [bigmemory](https://cran.r-project.org/web/packages/bigmemory/index.html) package to reduce memory requirements.  __Please read the vignette at the link above to learn more about this__
 
 ```{r}
 library(bigmemory)
-library(bigmemoryExtras)
 ```
 
 ## testing ideas
@@ -137,6 +136,7 @@ system.time(results <- chunked.cor(my.data.large[,1:50003]))
 system.time(results <- chunked.cor(my.data.large[,1:100003]))
 ```
 
+Delete the file when you are done with it, it is huge!
 ```{r}
 file.remove("cor.results.bm","cor.results.bm.desc")
 ```
