@@ -79,7 +79,8 @@ chunked.cor <- function(my.data,chunk.size=NA,use="everything",method="pearson",
 
     cor.results <- filebacked.big.matrix(nrow = ncol,
                                         ncol = ncol,
-                                        backingfile = "cor.results.bm")
+                                        backingfile = "cor.results.bm"
+                                        )
                                         
   if(verbose) cat("done\n")
     
@@ -124,5 +125,19 @@ system.time(results <- chunked.cor(my.data.large[,1:10003]))
 20003 columns
 ```{r}
 system.time(results <- chunked.cor(my.data.large[,1:20003]))
+```
+
+50003 columns
+```{r}
+system.time(results <- chunked.cor(my.data.large[,1:50003]))
+```
+
+100003 columns
+```{r}
+system.time(results <- chunked.cor(my.data.large[,1:100003]))
+```
+
+```{r}
+file.remove("cor.results.bm","cor.results.bm.desc")
 ```
 
