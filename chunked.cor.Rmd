@@ -3,10 +3,10 @@ title: "correlations"
 output: html_notebook
 ---
 
-This script demos how to do correlations across very large matrices.  It makes use of the [BufferedMatrix](https://bioconductor.org/packages/release/bioc/vignettes/BufferedMatrix/inst/doc/BufferedMatrix.pdf) package to reduce memory requirements.  __Please read the vignette at the link above to learn how to use the resulting data object__
+This script demos how to do correlations across very large matrices.  It makes use of the [bigmemory](https://cran.r-project.org/web/packages/bigmemory/index.html) package to reduce memory requirements.  __Please read the vignette at the link above to learn more about this__
 
 ```{r}
-library(BufferedMatrix)
+library(bigmemory)
 ```
 
 ## testing ideas
@@ -76,14 +76,11 @@ chunked.cor <- function(my.data,chunk.size=NA,use="everything",method="pearson",
   
     if(verbose) cat("creating matrix\n")
 
-    cor.results <- createBufferedMatrix(rows = ncol,
-                                        cols = ncol,
-                                        bufferrows = chunk.size,
-                                        buffercols = 1,
-                                        directory = tempdir())
-    
-    RowMode(cor.results)
-  
+    cor.results <- filebacked.big.matrix(nrow = ncol,
+                                        ncol = ncol,
+                                        backingfile = "cor.results.bm"
+                                        )
+                                        
   if(verbose) cat("done\n")
     
   
@@ -127,5 +124,15 @@ system.time(results <- chunked.cor(my.data.large[,1:10003]))
 20003 columns
 ```{r}
 system.time(results <- chunked.cor(my.data.large[,1:20003]))
+```
+
+100003 columns
+```{r}
+system.time(results <- chunked.cor(my.data.large[,1:100003]))
+```
+
+Delete the file when you are done with it, it is huge!
+```{r}
+file.remove("cor.results.bm","cor.results.bm.desc")
 ```
 
