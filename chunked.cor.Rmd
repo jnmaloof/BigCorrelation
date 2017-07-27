@@ -124,8 +124,8 @@ my.data.large <- matrix(rnorm(ncol*nrow),ncol=ncol)
 system.time(results <- chunked.cor(my.data.large[,1:10003]))
 ```
 
-50003 columns
+20003 columns
 ```{r}
-system.time(results <- chunked.cor(my.data.large[,1:50003]))
+system.time(results <- chunked.cor(my.data.large[,1:20003]))
 ```
 
